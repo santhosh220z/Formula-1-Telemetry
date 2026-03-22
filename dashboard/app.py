@@ -16,8 +16,34 @@ st.markdown("Predict future lap performance, tire degradation, and optimal pit s
 
 # Set up sidebar
 st.sidebar.header("Configuration")
-year = st.sidebar.selectbox("Year", [2023, 2022, 2021], index=0)
-event = st.sidebar.selectbox("Event", ["Bahrain", "Monaco", "Silverstone", "Monza", "Abu Dhabi"], index=0)
+year = st.sidebar.selectbox("Year", [2025, 2024, 2023, 2022, 2021], index=0)
+TRACKS = {
+    "Bahrain International Circuit (Bahrain GP)": "Bahrain",
+    "Jeddah Corniche Circuit (Saudi Arabian GP)": "Saudi Arabia",
+    "Albert Park Circuit (Australian GP)": "Australia",
+    "Suzuka Circuit (Japanese GP)": "Japan",
+    "Shanghai International Circuit (Chinese GP)": "China",
+    "Miami International Autodrome (Miami GP)": "Miami",
+    "Imola Circuit (Emilia Romagna GP)": "Emilia Romagna",
+    "Circuit de Monaco (Monaco GP)": "Monaco",
+    "Circuit de Barcelona-Catalunya (Spanish GP)": "Spain",
+    "Circuit Gilles Villeneuve (Canadian GP)": "Canada",
+    "Red Bull Ring (Austrian GP)": "Austria",
+    "Silverstone Circuit (British GP)": "Great Britain",
+    "Hungaroring (Hungarian GP)": "Hungary",
+    "Circuit de Spa-Francorchamps (Belgian GP)": "Belgium",
+    "Circuit Zandvoort (Dutch GP)": "Netherlands",
+    "Autodromo Nazionale Monza (Italian GP)": "Italy",
+    "Marina Bay Street Circuit (Singapore GP)": "Singapore",
+    "Circuit of the Americas (USA GP)": "United States",
+    "Autódromo Hermanos Rodríguez (Mexico City GP)": "Mexico",
+    "Autódromo José Carlos Pace (São Paulo GP)": "Brazil",
+    "Las Vegas Strip Circuit (Las Vegas GP)": "Las Vegas",
+    "Lusail International Circuit (Qatar GP)": "Qatar",
+    "Yas Marina Circuit (Abu Dhabi GP)": "Abu Dhabi"
+}
+selected_track = st.sidebar.selectbox("Event", list(TRACKS.keys()), index=0)
+event = TRACKS[selected_track]
 
 # Check for model existence
 model_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'models', f'lstm_{year}_{event}.pth')
