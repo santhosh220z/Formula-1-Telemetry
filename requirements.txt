@@ -1,8 +1,7 @@
-torch
-fastf1
-pandas
-numpy
-scikit-learn
-streamlit
-plotly
-matplotlib
+fastf1==3.8.3
+streamlit==1.66.0
+plotly==7.1.0
+pandas==2.3.3
+numpy==2.5.4
+scipy==1.18.1
+pytest==9.1.1
