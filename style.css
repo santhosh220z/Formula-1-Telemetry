@@ -1,0 +1,145 @@
+:root {
+  --pit-bg: #0B0D10;
+  --pit-panel: #0E1116;
+  --pit-panel-2: #12151B;
+  --pit-line: #23262B;
+  --pit-text: #D7DADE;
+  --pit-muted: #8B9097;
+  --pit-accent: #FF1801;
+  --pit-ok: #4CAF50;
+  --pit-warn: #FFB300;
+  --pit-err: #FF5252;
+}
+
+/* Streamlit chrome reset */
+.stApp {
+  background: var(--pit-bg);
+  color: var(--pit-text);
+  font-family: "Segoe UI", sans-serif;
+}
+
+section[data-testid="stSidebar"] {
+  background: var(--pit-panel);
+  border-right: 1px solid var(--pit-line);
+}
+section[data-testid="stSidebar"] * {
+  color: var(--pit-text);
+}
+section[data-testid="stSidebar"] hr {
+  border-color: var(--pit-line);
+}
+
+h1, h2, h3 {
+  color: var(--pit-text);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Header panel */
+.pw-head {
+  border: 1px solid var(--pit-line);
+  border-left: 3px solid var(--pit-accent);
+  background: var(--pit-panel);
+  padding: 14px 18px;
+  border-radius: 4px;
+}
+.pw-head .pw-event {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--pit-text);
+  line-height: 1.25;
+}
+.pw-head .pw-meta {
+  font-family: Consolas, monospace;
+  font-size: 12px;
+  color: var(--pit-muted);
+  margin-top: 2px;
+}
+
+/* Driver chips */
+.pw-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: Consolas, monospace;
+  font-size: 13px;
+  color: var(--pit-text);
+  background: var(--pit-panel-2);
+  border: 1px solid var(--pit-line);
+  border-radius: 4px;
+  padding: 5px 10px;
+}
+.pw-chip .pw-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  display: inline-block;
+}
+.pw-chip .pw-tag {
+  color: var(--pit-muted);
+  font-size: 11px;
+}
+
+/* Section labels */
+.pw-section {
+  margin: 22px 0 6px 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--pit-line);
+  color: var(--pit-text);
+  font-weight: 600;
+  font-size: 15px;
+}
+.pw-note {
+  color: var(--pit-muted);
+  font-size: 12.5px;
+  margin-bottom: 4px;
+}
+
+/* Panels around tables/maps */
+.pw-panel {
+  border: 1px solid var(--pit-line);
+  background: var(--pit-panel);
+  border-radius: 4px;
+  padding: 8px;
+}
+.pw-panel .stPlotlyChart,
+.pw-panel .stTabs {
+  border-radius: 2px;
+}
+
+/* Streamlit inputs polish */
+.stSelectbox > div > div,
+input, .stButton > button, button[kind] {
+  background: var(--pit-panel-2) !important;
+  color: var(--pit-text) !important;
+  border-color: var(--pit-line) !important;
+}
+button[kind="primary"] {
+  background: var(--pit-accent) !important;
+  border-color: var(--pit-accent) !important;
+  color: #fff !important;
+}
+
+/* Alert boxes recolor */
+[data-testid="stAlert"] {
+  background: var(--pit-panel-2);
+  border: 1px solid var(--pit-line);
+  border-radius: 4px;
+  color: var(--pit-text);
+}
+
+/* Status strip */
+.pw-status {
+  font-family: Consolas, monospace;
+  font-size: 11.5px;
+  color: var(--pit-muted);
+}
+.pw-status .pw-ok { color: var(--pit-ok); }
+.pw-status .pw-warn { color: var(--pit-warn); }
+.pw-status .pw-err { color: var(--pit-err); }
+
+/* Hide Streamlit footer noise */
+#MainMenu, footer { visibility: hidden; }
+body * {
+  scrollbar-color: var(--pit-line) transparent;
+}
