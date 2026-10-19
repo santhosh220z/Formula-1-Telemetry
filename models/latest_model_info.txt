@@ -1,2 +1,0 @@
-model_path=models\lstm_2023_Abu Dhabi.pth
-input_size=10
