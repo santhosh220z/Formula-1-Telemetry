@@ -31,7 +31,6 @@ def corner_table(breakdown) -> go.Figure:
     b = breakdown
     labels = (b["corner"].astype("str") + b["letter"].fillna("")).tolist()
     n_rows = max(len(b), 1)
-    winner_colors = [ACCENT] + [TEXT] * (len(b.columns) - 3) + [TEXT]
     header = ["Corner", "Δ (s)", "Winner", "V_min A (km/h)", "V_min B (km/h)",
               "Brake A (m)", "Brake B (m)", "Throttle A (m)", "Throttle B (m)"]
     columns = [

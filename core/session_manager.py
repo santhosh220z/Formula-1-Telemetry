@@ -1,4 +1,5 @@
 import os
+import threading
 
 import fastf1
 import fastf1.plotting
@@ -8,6 +9,8 @@ _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CACHE_DIR = os.path.join(_REPO_ROOT, ".fastf1_cache")
 
 SESSION_CODES = ["Q", "R", "FP1", "FP2", "FP3"]
+
+_SCHEDULE_TIMEOUT_S = 25.0
 
 _FALLBACK_COLORS = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"]
 
@@ -36,8 +39,38 @@ def filter_event_schedule(schedule: pd.DataFrame) -> list[str]:
     return list(names[~is_testing])
 
 
-def available_events(year: int) -> list[str]:
-    return filter_event_schedule(fastf1.get_event_schedule(year))
+def available_events(year: int, timeout: float = _SCHEDULE_TIMEOUT_S) -> list[str]:
+    outcome: dict = {}
+
+    def _fetch():
+        try:
+            outcome["schedule"] = fastf1.get_event_schedule(year)
+        except BaseException as exc:  # re-raised in the caller thread below
+            outcome["error"] = exc
+
+    reader = threading.Thread(target=_fetch, daemon=True)
+    reader.start()
+    reader.join(timeout)
+    if reader.is_alive():
+        raise TimeoutError(
+            f"F1 schedule fetch for {year} timed out after {timeout:g}s; "
+            "check your connection and retry."
+        )
+    if "error" in outcome:
+        raise outcome["error"]
+    return filter_event_schedule(outcome["schedule"])
+
+
+def parse_lap_label(label: str):
+    parts = label.split()
+    if parts and parts[0] == "Fastest":
+        return None
+    if len(parts) >= 2 and parts[0] == "Lap":
+        try:
+            return int(parts[1])
+        except ValueError:
+            pass
+    raise ValueError(f"Unrecognized lap label {label!r}")
 
 
 def load_session(year: int, event: str, code: str):

@@ -56,9 +56,9 @@ def _analysis(year: int, event: str, code: str, driver_a: str, driver_b: str, la
     session = _session(year, event, code)
 
     def resolve(lap_label: str, driver: str):
-        if lap_label.startswith("Fastest"):
+        number = session_manager.parse_lap_label(lap_label)
+        if number is None:
             return None
-        number = int(lap_label.split()[-1])
         laps = session_manager.laps_of(session, driver)
         match = laps[laps["LapNumber"] == number]
         if match.empty:
@@ -142,11 +142,14 @@ def _main_view(triple: dict):
         st.error("This session loaded without lap timing data, so no telemetry comparison is possible.")
         return
 
-    driver_a = st.selectbox("Driver A", candidates.index, key="driver_a")
-    driver_b = st.selectbox(
-        "Driver B", candidates.index,
-        index=1 if len(candidates) > 1 else 0, key="driver_b",
-    )
+    key_ctx = f"{year}-{event}-{code}"
+    col_a, col_b = st.columns(2, gap="small")
+    with col_a:
+        driver_a = st.selectbox("Driver A", candidates.index, key=f"driver-a-{key_ctx}")
+    with col_b:
+        driver_b = st.selectbox(
+            "Driver B", candidates.index, index=1, key=f"driver-b-{key_ctx}",
+        )
     if driver_a == driver_b:
         st.warning("Driver A and B are the same; pick two different drivers to compare.")
         return
@@ -154,20 +157,30 @@ def _main_view(triple: dict):
     try:
         laps_a = _lap_list(year, event, code, driver_a)
         laps_b = _lap_list(year, event, code, driver_b)
-        lap_a = st.selectbox("Lap A", ["Fastest (default)"] + [f"Lap {int(n)} · {_format_lap(t)}" for n, t in zip(laps_a["lap"], laps_a["time_s"])], key="lap_a")
-        lap_b = st.selectbox("Lap B", ["Fastest (default)"] + [f"Lap {int(n)} · {_format_lap(t)}" for n, t in zip(laps_b["lap"], laps_b["time_s"])], key="lap_b")
-
-        with st.spinner("Composing analysis…"):
-            try:
-                data = _analysis(year, event, code, driver_a, driver_b, lap_a, lap_b)
-            except Exception as exc:
-                _auth_hint(f"{type(exc).__name__}: {exc}")
-                st.error(f"Analysis failed on this session: {exc}. Try different drivers, laps, or clear .fastf1_cache if data looks stale.")
-                return
     except Exception as exc:
         _auth_hint(f"{type(exc).__name__}: {exc}")
         st.error(f"Lap metadata failed: {exc}")
         return
+
+    if laps_a.empty or laps_b.empty:
+        missing = driver_a if laps_a.empty else driver_b
+        st.warning(f"{missing} has no timed laps in this session; pick another driver to compare.")
+        return
+
+    options_a = ["Fastest (default)"] + [f"Lap {int(n)} · {_format_lap(t)}" for n, t in zip(laps_a["lap"], laps_a["time_s"])]
+    options_b = ["Fastest (default)"] + [f"Lap {int(n)} · {_format_lap(t)}" for n, t in zip(laps_b["lap"], laps_b["time_s"])]
+    with col_a:
+        lap_a = st.selectbox("Lap A", options_a, key=f"lap-a-{key_ctx}-{driver_a}")
+    with col_b:
+        lap_b = st.selectbox("Lap B", options_b, key=f"lap-b-{key_ctx}-{driver_b}")
+
+    with st.spinner("Composing analysis…"):
+        try:
+            data = _analysis(year, event, code, driver_a, driver_b, lap_a, lap_b)
+        except Exception as exc:
+            _auth_hint(f"{type(exc).__name__}: {exc}")
+            st.error(f"Analysis failed on this session: {exc}. Try different drivers, laps, or clear .fastf1_cache if data looks stale.")
+            return
 
     colors = data["aligned"].get("colors", {"a": "#8B9097", "b": "#8B9097"})
     head = f"""
@@ -235,8 +248,8 @@ def _sidebar() -> dict:
         st.sidebar.warning("No events found for this season yet.")
         return triple
 
-    event = st.sidebar.selectbox("Grand Prix", events)
-    code_label = st.sidebar.selectbox("Session", list(SESSION_LABELS.keys()), format_func=SESSION_LABELS.get)
+    event = st.sidebar.selectbox("Grand Prix", events, key=f"gp-{year}")
+    code_label = st.sidebar.selectbox("Session", list(SESSION_LABELS.keys()), format_func=SESSION_LABELS.get, key="session-code")
     triple = {"year": year, "event": event, "code": code_label}
     st.sidebar.markdown(
         '<div class="pw-status">F1 gates this data behind an F1 TV account. Sign in once with '
