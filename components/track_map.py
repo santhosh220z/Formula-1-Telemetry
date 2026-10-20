@@ -6,7 +6,7 @@ from components.telemetry_plots import PANEL_BG, TEXT
 _TIE_COLOR = "#5A6067"
 
 
-def _rotate(x, y, degrees):
+def rotate_xy(x, y, degrees):
     angle = np.deg2rad(degrees)
     cos_a, sin_a = np.cos(angle), np.sin(angle)
     return x * cos_a - y * sin_a, x * sin_a + y * cos_a
@@ -28,7 +28,7 @@ def _seg_color(faster, aligned: dict, colors: dict) -> str:
 def track_map_figure(aligned: dict, corners=None, rotation_deg: float = 0.0, microsectors=None) -> go.Figure:
     colors = aligned.get("colors", {"a": "#1f77b4", "b": "#ff7f0e"})
     frame = aligned["a"]
-    x, y = _rotate(frame["X"].to_numpy(), frame["Y"].to_numpy(), rotation_deg)
+    x, y = rotate_xy(frame["X"].to_numpy(), frame["Y"].to_numpy(), rotation_deg)
     dist = frame["Distance"].to_numpy()
 
     fig = go.Figure()
@@ -56,7 +56,7 @@ def track_map_figure(aligned: dict, corners=None, rotation_deg: float = 0.0, mic
             )
 
     if corners is not None and len(corners):
-        cx, cy = _rotate(corners["X"].to_numpy(), corners["Y"].to_numpy(), rotation_deg)
+        cx, cy = rotate_xy(corners["X"].to_numpy(), corners["Y"].to_numpy(), rotation_deg)
         labels = [
             f"T{int(n)}{letter}".strip()
             for n, letter in zip(corners["Number"], corners["Letter"])
