@@ -13,7 +13,8 @@ def _table(header, columns, column_font_colors, height, name="tbl"):
             ),
             cells=dict(
                 values=columns,
-                fill_color=PANEL_BG, font=dict(color=column_font_colors, size=13),
+                fill_color=PANEL_BG,
+                font=dict(color=column_font_colors, size=13, family="Consolas, monospace"),
                 align="center", height=30,
             ),
         )

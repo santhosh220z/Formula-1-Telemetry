@@ -1,4 +1,5 @@
 :root {
+  color-scheme: dark;
   --pit-bg: #0B0D10;
   --pit-panel: #0E1116;
   --pit-panel-2: #12151B;
@@ -6,9 +7,6 @@
   --pit-text: #D7DADE;
   --pit-muted: #8B9097;
   --pit-accent: #FF1801;
-  --pit-ok: #4CAF50;
-  --pit-warn: #FFB300;
-  --pit-err: #FF5252;
 }
 
 /* Streamlit chrome reset */
@@ -117,7 +115,7 @@ input, .stButton > button, button[kind] {
 button[kind="primary"] {
   background: var(--pit-accent) !important;
   border-color: var(--pit-accent) !important;
-  color: #fff !important;
+  color: #0B0D10 !important;
 }
 
 /* Alert boxes recolor */
@@ -134,9 +132,6 @@ button[kind="primary"] {
   font-size: 11.5px;
   color: var(--pit-muted);
 }
-.pw-status .pw-ok { color: var(--pit-ok); }
-.pw-status .pw-warn { color: var(--pit-warn); }
-.pw-status .pw-err { color: var(--pit-err); }
 
 /* Hide Streamlit footer noise */
 #MainMenu, footer { visibility: hidden; }
