@@ -140,7 +140,13 @@ def _main_view(triple: dict):
         st.error("This session does not have two drivers with recorded telemetry.")
         return
 
-    if not session_manager.has_timing_data(_session(year, event, code)):
+    try:
+        has_timing = session_manager.has_timing_data(_session(year, event, code))
+    except Exception as exc:
+        _auth_hint(f"{type(exc).__name__}: {exc}")
+        st.error(f"Lap timing data is unavailable for this session: {exc}")
+        return
+    if not has_timing:
         _auth_hint("timing data has not been loaded yet")
         st.error("This session loaded without lap timing data, so no telemetry comparison is possible.")
         return
@@ -212,7 +218,7 @@ def _main_view(triple: dict):
 
     _section("Synced telemetry")
     st.markdown('<div class="pw-note">Zoom or pan any trace; every viewport moves together on the shared distance axis.</div>', unsafe_allow_html=True)
-    st.plotly_chart(telemetry_figure(data["aligned"]), use_container_width=True, config={"displayModeBar": False})
+    st.plotly_chart(telemetry_figure(data["aligned"]), width="stretch", config={"displayModeBar": False})
 
     map_col, table_col = st.columns([5, 7], gap="small")
     with map_col:
@@ -220,12 +226,12 @@ def _main_view(triple: dict):
         st.markdown('<div class="pw-note">Segment colors: the faster driver over that mini-sector.</div>', unsafe_allow_html=True)
         st.plotly_chart(
             track_map_figure(data["aligned"], data["corners_df"], data["rotation"], data["microsectors"]),
-            use_container_width=True, config={"displayModeBar": False},
+            width="stretch", config={"displayModeBar": False},
         )
     with table_col:
         _section("Corner breakdown")
         st.markdown('<div class="pw-note">Per corner: minimum speed, braking onset, throttle pick-up and the local time cost.</div>', unsafe_allow_html=True)
-        st.plotly_chart(corner_table(data["breakdown"]), use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(corner_table(data["breakdown"]), width="stretch", config={"displayModeBar": False})
 
     _section("Tyre stints")
     _left, _right = st.columns([7, 5], gap="small")
@@ -235,13 +241,13 @@ def _main_view(triple: dict):
                 data["lap_evolution"], data["stats"],
                 {code: row["color"] for code, row in candidates.loc[[driver_a, driver_b]].iterrows()},
             ),
-            use_container_width=True, config={"displayModeBar": False},
+            width="stretch", config={"displayModeBar": False},
         )
     with _right:
         if data["stats"].empty:
             st.info("No stint reached the 3-lap minimum in this session, so there are no fits to tabulate; lap points still render on the left.")
         else:
-            st.plotly_chart(stint_table(data["stats"]), use_container_width=True, config={"displayModeBar": False})
+            st.plotly_chart(stint_table(data["stats"]), width="stretch", config={"displayModeBar": False})
         offsets = data["offsets"]
         offset_text = "  ".join(
             f"{row['Compound']} {row['offset_s']:+.1f}s" for _, row in offsets.iterrows()
