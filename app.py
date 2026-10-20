@@ -238,7 +238,10 @@ def _main_view(triple: dict):
             use_container_width=True, config={"displayModeBar": False},
         )
     with _right:
-        st.plotly_chart(stint_table(data["stats"]), use_container_width=True, config={"displayModeBar": False})
+        if data["stats"].empty:
+            st.info("No stint reached the 3-lap minimum in this session, so there are no fits to tabulate; lap points still render on the left.")
+        else:
+            st.plotly_chart(stint_table(data["stats"]), use_container_width=True, config={"displayModeBar": False})
         offsets = data["offsets"]
         offset_text = "  ".join(
             f"{row['Compound']} {row['offset_s']:+.1f}s" for _, row in offsets.iterrows()

@@ -3,6 +3,16 @@ import pandas as pd
 
 _MIN_STINT_LAPS = 3
 
+_STATS_COLUMNS = (
+    "driver",
+    "stint",
+    "compound",
+    "laps",
+    "base_s",
+    "deg_slope_s_per_lap",
+    "deg_total_s",
+)
+
 
 def valid_laps(session) -> pd.DataFrame:
     laps = session.laps
@@ -16,13 +26,14 @@ def valid_laps(session) -> pd.DataFrame:
         "PitOutTime",
     ]
     clean = laps[[c for c in keep if c in laps.columns]].copy()
-    clean = clean[
+    keep_mask = (
         clean["LapTime"].notna()
         & clean["PitInTime"].isna()
         & clean["PitOutTime"].isna()
         & clean["Stint"].notna()
         & clean["Compound"].notna()
-    ]
+    )
+    clean = clean[keep_mask].copy()
     clean["LapTime_s"] = clean["LapTime"].dt.total_seconds()
     return clean
 
@@ -46,7 +57,7 @@ def stint_stats(session) -> pd.DataFrame:
                 "deg_total_s": float(slope * n),
             }
         )
-    return pd.DataFrame(rows)
+    return pd.DataFrame(rows, columns=_STATS_COLUMNS)
 
 
 def compound_offsets(session) -> pd.DataFrame:

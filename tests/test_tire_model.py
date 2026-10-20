@@ -106,3 +106,25 @@ def test_stint_degradation_pair_shape():
 
     assert len(stats) == 1
     assert {"Compound", "median_s", "offset_s"}.issubset(offsets.columns)
+
+
+def test_stint_stats_empty_result_keeps_columns():
+    from core.tire_model import _STATS_COLUMNS, stint_stats
+
+    laps = stint_laps("VER", "SOFT", 90.0, 0.0, [1, 2])  # stint shorter than _MIN_STINT_LAPS
+    session = fake_session(laps)
+
+    stats = stint_stats(session)
+
+    assert stats.empty
+    assert list(stats.columns) == list(_STATS_COLUMNS)
+
+
+def test_valid_laps_raises_on_chained_assignment():
+    from core.tire_model import valid_laps
+
+    session = pit_mix_driver()
+
+    with pd.option_context("mode.chained_assignment", "raise"):
+        laps = valid_laps(session)
+    assert laps["LapTime_s"].notna().all()
