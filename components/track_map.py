@@ -57,9 +57,10 @@ def track_map_figure(aligned: dict, corners=None, rotation_deg: float = 0.0, mic
 
     if corners is not None and len(corners):
         cx, cy = _rotate(corners["X"].to_numpy(), corners["Y"].to_numpy(), rotation_deg)
+        letters = corners["Letter"].fillna("").astype(str)
         labels = [
             f"T{int(n)}{letter}".strip()
-            for n, letter in zip(corners["Number"], corners["Letter"])
+            for n, letter in zip(corners["Number"], letters)
         ]
         fig.add_trace(
             go.Scatter(
