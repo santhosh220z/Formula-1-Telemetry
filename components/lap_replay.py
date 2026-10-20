@@ -82,7 +82,6 @@ def replay_figure(
             textposition="top left", hoverinfo="skip", showlegend=False,
         )
     )
-    pos += 1
     fig.add_trace(
         go.Scatter(
             x=x, y=y, mode="lines",
@@ -128,7 +127,7 @@ def replay_figure(
                 textposition="top left", hoverinfo="skip", showlegend=False,
             )
         )
-        animated.append(go.Frame(data=data, name=str(i), redraw=True))
+        animated.append(go.Frame(data=data, name=str(i)))
     fig.frames = animated
 
     step_stride = max(1, n // _STEP_TARGET)

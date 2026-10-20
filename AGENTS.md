@@ -28,16 +28,22 @@ core/                     # pure Python: fastf1 + numpy/pandas/scipy; NO streaml
   telemetry_resampler.py  # distance-based resampling; aligns both drivers on a common grid; delta-time math
   corner_analyzer.py      # micro-sector + apex metrics
   tire_model.py           # stint degradation & compound normalization
+  lap_replay.py           # session-clock curves + frame math for the replay page
 components/               # Plotly figure builders: take core outputs, return go.Figure
   telemetry_plots.py      # synced 5-row chart
   track_map.py            # circuit outline + advantage map
   tables.py               # corner breakdown & stint stats
+  lap_replay.py           # animated session playback (Plotly frames + Play/Pause/Restart)
+pages/
+  1_Lap Replay.py         # Streamlit multipage: session-clock dot replay (URL /lap_replay)
+dash_state.py             # shared Streamlit plumbing both pages import: cached session/event/lap loaders, sidebar, theme inject, URL restore helpers
 app.py                    # Streamlit wiring only (widgets, layout, st.* calls, CSS)
 ```
 
-- Data flow: `app.py` → `core.session_manager` → `core.telemetry_resampler` (both drivers) → `core.corner_analyzer` / `core.tire_model` → `components.*` → figures rendered in `app.py`.
+- Two pages: `app.py` (driver A vs B telemetry analysis) and `pages/1_Lap Replay.py`. Both pages call `dash_state.sidebar()` / etc. so season/GP/session widgets share state; widget keys are identical across pages on purpose. Replay-page URL params are `r_`-prefixed.
+- Data flow: `app.py` → `core.session_manager` → `core.telemetry_resampler` (both drivers) → `core.corner_analyzer` / `core.tire_model` → `components.*` → figures rendered in `app.py`. Replay page: `core.session_manager.laps_of` → `telemetry_resampler.extract_lap_profile` per lap → `core.lap_replay.session_curves/replay_frames` → `components.lap_replay.replay_figure`.
 - Imports are plain top-level (`from core.telemetry_resampler import ...`) — `streamlit run app.py` runs from repo root, so no `sys.path` hacks (the old dashboard needed them; this layout does not).
-- Keep all math/analysis in `core/`, all plotting in `components/`; never call `fastf1` from `app.py` or `components/` directly.
+- Keep all math/analysis in `core/`, all plotting in `components/`; never call `fastf1` from `app.py`, `dash_state.py` loaders aside, or `components/` directly.
 
 ## Commands (dev box: Windows / PowerShell)
 
