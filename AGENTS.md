@@ -54,6 +54,7 @@ venv\Scripts\streamlit run app.py
 ```
 
 - No test/lint/typecheck config yet. While building, smoke-test modules with a `__main__` guard (`python core/corner_analyzer.py`) or `python -c "from core.x import f; ..."`. Add real tests before this section gets stale.
+- `py_compile` and `/_stcore/health` both miss import-time errors. Boot-verify both entry scripts after touching imports: `streamlit.testing.v1.AppTest.from_file("app.py").run()` and same for `pages/1_Lap Replay.py` (assert `at.exception` is empty). `tests/test_dash_state_exports.py` guards the `dash_state` import surface.
 - If FastF1 acts oddly after code changes, clear the cache (`Remove-Item -Recurse -Force .fastf1_cache`) before assuming a code bug.
 - Create `.gitignore` covering `.fastf1_cache/`, `venv/`, `__pycache__/` before the first commit — cached telemetry dumps will bloat the repo.
 

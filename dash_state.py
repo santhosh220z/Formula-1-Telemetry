@@ -36,6 +36,17 @@ def circuit(year: int, event: str, code: str):
     return session_manager.get_circuit_info(session(year, event, code))
 
 
+@st.cache_data(show_spinner=False)
+def lap_list(year: int, event: str, code: str, driver: str) -> pd.DataFrame:
+    laps = session_manager.laps_of(session(year, event, code), driver)
+    return pd.DataFrame(
+        {
+            "lap": laps["LapNumber"].to_numpy(dtype=int),
+            "time_s": laps["LapTime"].dt.total_seconds().to_numpy(),
+        }
+    )
+
+
 _AUTH_HINT_TOKENS = (
     "datanotloadederror",
     "sessionnotavailableerror",
