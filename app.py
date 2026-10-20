@@ -19,12 +19,12 @@ except OSError:
 SESSION_LABELS = {"Q": "Qualifying", "R": "Race", "FP1": "Practice 1", "FP2": "Practice 2", "FP3": "Practice 3"}
 
 
-@st.cache_data(show_spinner="Loading race calendar")
+@st.cache_data(show_spinner="Loading race calendar…")
 def _events(year: int) -> list:
     return session_manager.available_events(year)
 
 
-@st.cache_resource(show_spinner="Fetching session from F1 live timing (first load can take a minute)")
+@st.cache_resource(show_spinner="Fetching session from F1 live timing (first load can take a minute)…")
 def _session(year: int, event: str, code: str):
     return session_manager.load_session(year, event, code)
 
@@ -50,7 +50,7 @@ def _lap_list(year: int, event: str, code: str, driver: str) -> pd.DataFrame:
     )
 
 
-@st.cache_data(show_spinner="Aligning telemetry on the distance grid")
+@st.cache_data(show_spinner="Aligning telemetry on the distance grid…")
 def _analysis(year: int, event: str, code: str, driver_a: str, driver_b: str, lap_a: str, lap_b: str) -> dict:
     session = _session(year, event, code)
 
@@ -96,6 +96,29 @@ def _format_lap(seconds: float) -> str:
     return f"{minutes}:{seconds % 60:04.1f}"
 
 
+_AUTH_HINT_TOKENS = (
+    "datanotloadederror",
+    "sessionnotavailableerror",
+    "no data for this session",
+    "has not been loaded yet",
+    "failed to load",
+)
+
+
+def _auth_hint(exc: Exception) -> None:
+    text = f"{type(exc).__name__}: {exc}".lower()
+    if not any(token in text for token in _AUTH_HINT_TOKENS):
+        return
+    st.info(
+        "F1 now requires an F1 TV subscription to serve timing and telemetry data. "
+        "Sign in once with your F1 TV account:\n\n"
+        "`venv\\Scripts\\python -m fastf1 auth f1tv --authenticate`\n\n"
+        "The stored login lasts about four days; after that run the command again. "
+        "An active F1 TV Access, Pro or Premium plan is required. Reload the page "
+        "after signing in; the first load may still take a minute."
+    )
+
+
 def _section(title: str):
     st.markdown(f'<div class="pw-section">{title}</div>', unsafe_allow_html=True)
 
@@ -105,7 +128,8 @@ def _main_view(triple: dict):
     try:
         candidates = _drivers(year, event, code)
     except Exception as exc:
-        st.error(f"Session loaded but driver metadata failed: {exc}")
+        _auth_hint(exc)
+        st.error(f"Session load failed: {exc}")
         return
 
     if len(candidates) < 2:
@@ -118,19 +142,20 @@ def _main_view(triple: dict):
         index=1 if len(candidates) > 1 else 0, key="driver_b",
     )
     if driver_a == driver_b:
-        st.warning("Driver A and B are the same — pick two different drivers to compare.")
+        st.warning("Driver A and B are the same; pick two different drivers to compare.")
         return
 
     try:
         laps_a = _lap_list(year, event, code, driver_a)
         laps_b = _lap_list(year, event, code, driver_b)
-        lap_a = st.selectbox("Lap A", ["Fastest (default)"] + [f"Lap {int(n)} — {_format_lap(t)}" for n, t in zip(laps_a["lap"], laps_a["time_s"])], key="lap_a")
-        lap_b = st.selectbox("Lap B", ["Fastest (default)"] + [f"Lap {int(n)} — {_format_lap(t)}" for n, t in zip(laps_b["lap"], laps_b["time_s"])], key="lap_b")
+        lap_a = st.selectbox("Lap A", ["Fastest (default)"] + [f"Lap {int(n)} · {_format_lap(t)}" for n, t in zip(laps_a["lap"], laps_a["time_s"])], key="lap_a")
+        lap_b = st.selectbox("Lap B", ["Fastest (default)"] + [f"Lap {int(n)} · {_format_lap(t)}" for n, t in zip(laps_b["lap"], laps_b["time_s"])], key="lap_b")
 
-        with st.spinner("Composing analysis ..."):
+        with st.spinner("Composing analysis…"):
             try:
                 data = _analysis(year, event, code, driver_a, driver_b, lap_a, lap_b)
             except Exception as exc:
+                _auth_hint(exc)
                 st.error(f"Analysis failed on this session: {exc}. Try different drivers, laps, or clear .fastf1_cache if data looks stale.")
                 return
     except Exception as exc:
@@ -207,7 +232,8 @@ def _sidebar() -> dict:
     code_label = st.sidebar.selectbox("Session", list(SESSION_LABELS.keys()), format_func=SESSION_LABELS.get)
     triple = {"year": year, "event": event, "code": code_label}
     st.sidebar.markdown(
-        '<div class="pw-status">First load of a session fetches from the F1 API; later loads come from disk cache.</div>',
+        '<div class="pw-status">F1 gates this data behind an F1 TV account. Sign in once with '
+        '<code>venv\\Scripts\\python -m fastf1 auth f1tv --authenticate</code>; after that streams come from the API or disk cache.</div>',
         unsafe_allow_html=True,
     )
     return triple

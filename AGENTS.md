@@ -54,6 +54,7 @@ venv\Scripts\streamlit run app.py
 ## FastF1 gotchas
 
 - Every new (year, GP, session) triple downloads from the F1 API on first load: slow (tens of seconds) and requires internet. Subsequent loads come from disk cache.
+- **F1 gates the livetiming archive behind an authenticated F1 TV account** (since ~15 Oct 2026, Fast-F1 issue #978). We pin `fastf1==3.9.0a0`, which added auth support. Users sign in once with `venv\Scripts\python -m fastf1 auth f1tv --authenticate` (needs an F1 TV Access/Pro/Premium subscription; token listed by `--status`, lives ~4 days). Without it, loads finish but `laps`/`get_car_data()` raise `DataNotLoadedError`; results-only data is still free (Jolpica/Ergast). `app.py` surfaces this with `_auth_hint` on data failures.
 - Call `fastf1.Cache.enable_cache(...)` (pointing at `.fastf1_cache`) before any `session.load()`.
 - **Never hardcode a GP-name map** (the old code shipped one and it was brittle/stale). Build dropdowns from `fastf1.get_event_schedule(year)` and resolve with `fastf1.get_session(year, event, code)`.
 - Session codes: `'Q'`, `'R'`, `'FP1'`…`'FP3'`.
