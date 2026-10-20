@@ -30,14 +30,6 @@ def locate_corners(aligned: dict, corners: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def _first_window(values: np.ndarray, condition: np.ndarray) -> float:
-    """Distance of the first point starting SUSTAINED_POINTS consecutive True values."""
-    kernel = np.ones(SUSTAINED_POINTS, dtype=int)
-    runs = np.convolve(condition.astype(int), kernel, mode="valid") == SUSTAINED_POINTS
-    idx = np.argmax(runs) if runs.any() else -1
-    return idx if idx >= 0 else np.nan
-
-
 def _driver_window_metrics(frame: pd.DataFrame, start: float, end: float) -> dict:
     distance = frame["Distance"].to_numpy(dtype=float)
     speed = frame["Speed_ms"].to_numpy(dtype=float)
@@ -48,6 +40,9 @@ def _driver_window_metrics(frame: pd.DataFrame, start: float, end: float) -> dic
     smoothed = np.convolve(grad, np.full(SUSTAINED_POINTS, 1 / SUSTAINED_POINTS), mode="valid")
     pre_min = smoothed[: max(1, i_min - 3)]
     brake_runs = pre_min < BRAKE_GRAD_PER_M
+    # convolve output j summarizes grad[j : j + SUSTAINED_POINTS], so the first
+    # sample of any sustained run sits (SUSTAINED_POINTS // 2) ahead of the run index
+    half = SUSTAINED_POINTS // 2
     brake_idx = np.argmax(brake_runs) if brake_runs.any() else -1
     throttle_runs = np.convolve(
         frame["Throttle"].to_numpy(dtype=float)[i_min:] > THROTTLE_PICKUP_PCT,
@@ -57,8 +52,8 @@ def _driver_window_metrics(frame: pd.DataFrame, start: float, end: float) -> dic
     return {
         "v_min_ms": float(speed[i_min]),
         "v_min_dist": float(distance[i_min]),
-        "brake_onset_dist": float(distance[brake_idx]) if brake_idx >= 0 else np.nan,
-        "throttle_pickup_dist": float(distance[pickup_idx]) if pickup_idx >= 0 else np.nan,
+        "brake_onset_dist": float(distance[brake_idx + half]) if brake_idx >= 0 else np.nan,
+        "throttle_pickup_dist": float(distance[pickup_idx + half]) if pickup_idx >= 0 else np.nan,
     }
 
 
@@ -79,7 +74,7 @@ def corner_window_metrics(aligned: dict, corner_distance: float, window=WINDOW) 
     i_end = max(i_start + 1, int(np.searchsorted(dvals, end, side="right")) - 1)
     dvals_arr = delta["Delta_s"].to_numpy(dtype=float)
     corner_delta = float(dvals_arr[i_end] - dvals_arr[i_start])
-    faster = np.nan
+    faster = "Tie"
     if corner_delta > TIE_TOLERANCE_S:
         faster = aligned["driver_a"]
     elif corner_delta < -TIE_TOLERANCE_S:
