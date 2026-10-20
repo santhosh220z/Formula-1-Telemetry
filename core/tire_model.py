@@ -32,8 +32,10 @@ def valid_laps(session) -> pd.DataFrame:
         & clean["PitOutTime"].isna()
         & clean["Stint"].notna()
         & clean["Compound"].notna()
+        & clean["TyreLife"].notna()
     )
     clean = clean[keep_mask].copy()
+    clean = clean[~clean["Compound"].astype(str).str.contains("UNKNOWN", case=False)].copy()
     clean["LapTime_s"] = clean["LapTime"].dt.total_seconds()
     return clean
 
@@ -62,6 +64,8 @@ def stint_stats(session) -> pd.DataFrame:
 
 def compound_offsets(session) -> pd.DataFrame:
     laps = valid_laps(session)
+    if laps.empty:
+        return pd.DataFrame({"Compound": [], "median_s": [], "offset_s": []})
     med = laps.groupby("Compound", observed=True)["LapTime_s"].median()
     base = float(med.min())
     return pd.DataFrame(
