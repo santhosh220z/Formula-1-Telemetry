@@ -78,7 +78,10 @@ def _analysis(year: int, event: str, code: str, driver_a: str, driver_b: str, la
     breakdown = corner_analyzer.corner_breakdown(aligned, corners_df)
     microsectors = corner_analyzer.microsector_advantage(aligned)
     stats, offsets = tire_model.stint_degradation(session)
+    pair = [driver_a, driver_b]
+    stats = stats[stats["driver"].isin(pair)]
     lap_evolution = tire_model.valid_laps(session)
+    lap_evolution = lap_evolution[lap_evolution["Driver"].isin(pair)]
 
     return {
         "aligned": aligned,
@@ -143,12 +146,19 @@ def _main_view(triple: dict):
         return
 
     key_ctx = f"{year}-{event}-{code}"
+    params = st.query_params
     col_a, col_b = st.columns(2, gap="small")
     with col_a:
-        driver_a = st.selectbox("Driver A", candidates.index, key=f"driver-a-{key_ctx}")
+        driver_a = st.selectbox(
+            "Driver A", candidates.index,
+            index=_restore_index(params, "drv_a", list(candidates.index)),
+            key=f"driver-a-{key_ctx}",
+        )
     with col_b:
         driver_b = st.selectbox(
-            "Driver B", candidates.index, index=1, key=f"driver-b-{key_ctx}",
+            "Driver B", candidates.index,
+            index=_restore_index(params, "drv_b", list(candidates.index), 1),
+            key=f"driver-b-{key_ctx}",
         )
     if driver_a == driver_b:
         st.warning("Driver A and B are the same; pick two different drivers to compare.")
@@ -170,9 +180,14 @@ def _main_view(triple: dict):
     options_a = ["Fastest (default)"] + [f"Lap {int(n)} · {_format_lap(t)}" for n, t in zip(laps_a["lap"], laps_a["time_s"])]
     options_b = ["Fastest (default)"] + [f"Lap {int(n)} · {_format_lap(t)}" for n, t in zip(laps_b["lap"], laps_b["time_s"])]
     with col_a:
-        lap_a = st.selectbox("Lap A", options_a, key=f"lap-a-{key_ctx}-{driver_a}")
+        lap_a = st.selectbox("Lap A", options_a, index=_restore_index(params, "lap_a", options_a), key=f"lap-a-{key_ctx}-{driver_a}")
     with col_b:
-        lap_b = st.selectbox("Lap B", options_b, key=f"lap-b-{key_ctx}-{driver_b}")
+        lap_b = st.selectbox("Lap B", options_b, index=_restore_index(params, "lap_b", options_b), key=f"lap-b-{key_ctx}-{driver_b}")
+
+    st.query_params.update(
+        year=str(year), gp=event, code=code,
+        drv_a=driver_a, drv_b=driver_b, lap_a=lap_a, lap_b=lap_b,
+    )
 
     with st.spinner("Composing analysis…"):
         try:
@@ -218,7 +233,7 @@ def _main_view(triple: dict):
         st.plotly_chart(
             stint_evolution_figure(
                 data["lap_evolution"], data["stats"],
-                {code: row["color"] for code, row in candidates.iterrows()},
+                {code: row["color"] for code, row in candidates.loc[[driver_a, driver_b]].iterrows()},
             ),
             use_container_width=True, config={"displayModeBar": False},
         )
@@ -231,12 +246,33 @@ def _main_view(triple: dict):
         st.caption(f"Compound medians vs fastest compound: {offset_text}")
 
 
+def _restore_index(params, key: str, options: list, default: int = 0) -> int:
+    value = params.get(key)
+    if value in options:
+        return options.index(value)
+    return default
+
+
+def _param_int(params, key: str, allowed: list):
+    try:
+        value = int(params.get(key, ""))
+    except (TypeError, ValueError):
+        return None
+    return value if value in allowed else None
+
+
 def _sidebar() -> dict:
     st.sidebar.title("Pit Wall Telemetry")
     st.sidebar.caption("Telemetry comparison console")
 
+    params = st.query_params
+
     years = list(range(datetime.date.today().year, 2019, -1))
-    year = st.sidebar.selectbox("Season", years, index=0)
+    year = _param_int(params, "year", years)
+    if year is None:
+        year = years[0]
+    year = st.sidebar.selectbox("Season", years, index=years.index(year), key="season-year")
+    st.query_params.update(year=str(year))
 
     triple = {"year": year, "event": None, "code": None}
     try:
@@ -248,8 +284,15 @@ def _sidebar() -> dict:
         st.sidebar.warning("No events found for this season yet.")
         return triple
 
-    event = st.sidebar.selectbox("Grand Prix", events, key=f"gp-{year}")
-    code_label = st.sidebar.selectbox("Session", list(SESSION_LABELS.keys()), format_func=SESSION_LABELS.get, key="session-code")
+    event = st.sidebar.selectbox(
+        "Grand Prix", events, index=_restore_index(params, "gp", events), key=f"gp-{year}",
+    )
+    codes = list(SESSION_LABELS.keys())
+    code_label = st.sidebar.selectbox(
+        "Session", codes, format_func=SESSION_LABELS.get,
+        index=_restore_index(params, "code", codes), key="session-code",
+    )
+    st.query_params.update(gp=event, code=code_label)
     triple = {"year": year, "event": event, "code": code_label}
     st.sidebar.markdown(
         '<div class="pw-status">F1 gates this data behind an F1 TV account. Sign in once with '
