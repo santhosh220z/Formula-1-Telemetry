@@ -128,3 +128,71 @@ def test_valid_laps_raises_on_chained_assignment():
     with pd.option_context("mode.chained_assignment", "raise"):
         laps = valid_laps(session)
     assert laps["LapTime_s"].notna().all()
+
+
+def test_valid_laps_drops_nan_tyrelife():
+    from core.tire_model import valid_laps
+
+    laps = pd.DataFrame(
+        [
+            {"Driver": "VER", "Stint": 1, "Compound": "SOFT", "TyreLife": np.nan,
+             "LapTime": pd.to_timedelta(90, unit="s"), "PitInTime": pd.NaT, "PitOutTime": pd.NaT},
+            {"Driver": "VER", "Stint": 1, "Compound": "SOFT", "TyreLife": 1,
+             "LapTime": pd.to_timedelta(90, unit="s"), "PitInTime": pd.NaT, "PitOutTime": pd.NaT},
+        ]
+    )
+    session = fake_session(laps)
+
+    clean = valid_laps(session)
+
+    assert len(clean) == 1
+
+
+def test_stint_stats_survives_nan_tyrelife_in_group():
+    from core.tire_model import _STATS_COLUMNS, stint_stats
+
+    laps = pd.DataFrame(
+        [
+            {"Driver": "VER", "Stint": 1, "Compound": "SOFT", "TyreLife": 1,
+             "LapTime": pd.to_timedelta(90, unit="s"), "PitInTime": pd.NaT, "PitOutTime": pd.NaT},
+            {"Driver": "VER", "Stint": 1, "Compound": "SOFT", "TyreLife": 2,
+             "LapTime": pd.to_timedelta(91, unit="s"), "PitInTime": pd.NaT, "PitOutTime": pd.NaT},
+            {"Driver": "VER", "Stint": 1, "Compound": "SOFT", "TyreLife": np.nan,
+             "LapTime": pd.to_timedelta(92, unit="s"), "PitInTime": pd.NaT, "PitOutTime": pd.NaT},
+            {"Driver": "VER", "Stint": 1, "Compound": "SOFT", "TyreLife": 4,
+             "LapTime": pd.to_timedelta(93, unit="s"), "PitInTime": pd.NaT, "PitOutTime": pd.NaT},
+        ]
+    )
+    session = fake_session(laps)
+
+    stats = stint_stats(session)
+
+    # the NaN-TyreLife row must not poison the group: either three clean rows fit,
+    # or the group drops below the minimum and yields an empty (still-columned) frame
+    assert list(stats.columns) == list(_STATS_COLUMNS)
+    assert (len(stats) == 0) or (len(stats) == 1 and np.isfinite(stats.iloc[0]["deg_slope_s_per_lap"]))
+
+
+def test_unknown_compound_excluded_from_offsets_and_stats():
+    from core.tire_model import compound_offsets, stint_degradation
+
+    laps = pd.concat(
+        [
+            stint_laps("VER", "SOFT", 90.0, 0.3, range(1, 11)),
+            stint_laps("VER", "UNKNOWN", 89.0, 0.0, range(1, 12)),
+        ],
+        ignore_index=True,
+    )
+    session = fake_session(laps)
+
+    _, offsets = stint_degradation(session)
+
+    compounds = offsets["Compound"].tolist()
+    assert "UNKNOWN" not in compounds
+    soft = offsets[offsets["Compound"] == "SOFT"].iloc[0]
+    assert soft["offset_s"] == 0.0  # fast UNKNOWN laps must not become the baseline
+
+    from core.tire_model import stint_stats
+
+    stats = stint_stats(session)
+    assert (stats["compound"] == "UNKNOWN").sum() == 0
