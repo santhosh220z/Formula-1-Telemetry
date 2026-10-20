@@ -12,7 +12,8 @@ from core import session_manager, telemetry_resampler
 st.set_page_config(page_title="Pit Wall Telemetry", layout="wide")
 
 try:
-    st.markdown(open("style.css", encoding="utf-8").read(), unsafe_allow_html=True)
+    css = open("style.css", encoding="utf-8").read()
+    st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
 except OSError:
     st.warning("style.css missing; falling back to default theme.")
 
@@ -105,8 +106,8 @@ _AUTH_HINT_TOKENS = (
 )
 
 
-def _auth_hint(exc: Exception) -> None:
-    text = f"{type(exc).__name__}: {exc}".lower()
+def _auth_hint(detail: str) -> None:
+    text = detail.lower()
     if not any(token in text for token in _AUTH_HINT_TOKENS):
         return
     st.info(
@@ -128,12 +129,17 @@ def _main_view(triple: dict):
     try:
         candidates = _drivers(year, event, code)
     except Exception as exc:
-        _auth_hint(exc)
+        _auth_hint(f"{type(exc).__name__}: {exc}")
         st.error(f"Session load failed: {exc}")
         return
 
     if len(candidates) < 2:
         st.error("This session does not have two drivers with recorded telemetry.")
+        return
+
+    if not session_manager.has_timing_data(_session(year, event, code)):
+        _auth_hint("timing data has not been loaded yet")
+        st.error("This session loaded without lap timing data, so no telemetry comparison is possible.")
         return
 
     driver_a = st.selectbox("Driver A", candidates.index, key="driver_a")
@@ -155,10 +161,11 @@ def _main_view(triple: dict):
             try:
                 data = _analysis(year, event, code, driver_a, driver_b, lap_a, lap_b)
             except Exception as exc:
-                _auth_hint(exc)
+                _auth_hint(f"{type(exc).__name__}: {exc}")
                 st.error(f"Analysis failed on this session: {exc}. Try different drivers, laps, or clear .fastf1_cache if data looks stale.")
                 return
     except Exception as exc:
+        _auth_hint(f"{type(exc).__name__}: {exc}")
         st.error(f"Lap metadata failed: {exc}")
         return
 

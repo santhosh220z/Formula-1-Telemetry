@@ -49,6 +49,27 @@ def test_filter_event_schedule_drops_testing_keeps_chronology():
     assert events == ["Bahrain Grand Prix", "Saudi Arabian Grand Prix"]
 
 
+def test_has_timing_data_true_when_any_lap_timed():
+    from core.session_manager import has_timing_data
+
+    laps = pd.DataFrame({"LapTime": pd.to_timedelta([None, "00:01:31.5"])})
+    assert has_timing_data(FakeSession(laps)) is True
+
+
+def test_has_timing_data_false_when_all_laptimes_nat():
+    from core.session_manager import has_timing_data
+
+    laps = pd.DataFrame({"LapTime": pd.to_timedelta([None, None])})
+    assert has_timing_data(FakeSession(laps)) is False
+
+
+def test_has_timing_data_false_when_no_laps():
+    from core.session_manager import has_timing_data
+
+    laps = pd.DataFrame({"LapTime": pd.to_timedelta([])})
+    assert has_timing_data(FakeSession(laps)) is False
+
+
 def test_driver_candidates_lists_codes_with_color_fallback(monkeypatch):
     from core import session_manager
 

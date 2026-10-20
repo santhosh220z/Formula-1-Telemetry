@@ -71,6 +71,13 @@ def get_circuit_info(session):
     return circuit_info.corners, circuit_info.rotation
 
 
+def has_timing_data(session) -> bool:
+    laps = session.laps
+    if "LapTime" not in laps.columns or laps.empty:
+        return False
+    return bool(laps["LapTime"].notna().any())
+
+
 def best_lap(session, driver: str):
     driver_laps = session.laps.pick_drivers(driver)
     lap = driver_laps.pick_fastest()
