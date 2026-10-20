@@ -22,7 +22,7 @@ def enable_cache() -> None:
     if _cache_enabled:
         return
     os.makedirs(CACHE_DIR, exist_ok=True)
-    fastf1.Cache.enable_cache(CACHE_DIR)
+    fastf1.Cache.configure(cache_dir=CACHE_DIR)
     _cache_enabled = True
 
 
