@@ -72,7 +72,9 @@ def test_corner_metrics_brake_onset_and_throttle_pickup():
 
     assert abs(m["a_v_min_ms"] - 20.0) < 0.2
     assert abs(m["b_v_min_ms"] - 17.0) < 0.2
-    assert 145.0 <= m["b_brake_onset_dist"] <= 175.0
+    assert m["b_brake_onset_dist"] >= 150.0  # braking begins at the 150 m ramp start
+    assert 150.0 <= m["b_brake_onset_dist"] <= 175.0
+    assert m["b_throttle_pickup_dist"] > 308.9  # sustained throttle begins at the 310 m ramp
     assert 305.0 <= m["b_throttle_pickup_dist"] <= 330.0
 
 
@@ -99,7 +101,7 @@ def test_ties_give_no_faster_driver():
     breakdown = corner_breakdown(identical, one_corner_df())
 
     assert abs(breakdown.iloc[0]["corner_delta_s"]) < 1e-6
-    assert pd.isna(breakdown.iloc[0]["faster"])
+    assert breakdown.iloc[0]["faster"] == "Tie"
 
 
 def test_microsector_advantage_selects_faster_segments():
