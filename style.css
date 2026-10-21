@@ -78,6 +78,102 @@ h1, h2, h3 {
   font-size: 11px;
 }
 
+.st-key-driver-card-a,
+.st-key-driver-card-b {
+  border: 1px solid var(--pit-line);
+  background: var(--pit-panel);
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-top: 4px;
+}
+.st-key-driver-card-a img,
+.st-key-driver-card-b img {
+  width: 96px !important;
+  height: 120px !important;
+  object-fit: cover;
+  object-position: top center;
+  border-radius: 3px;
+  background: var(--pit-panel-2);
+  display: block;
+  margin: 0 auto;
+}
+.pw-driver-info {
+  min-width: 0;
+}
+.pw-driver-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pw-driver-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  display: inline-block;
+  flex: 0 0 auto;
+}
+.pw-driver-code {
+  font-family: Consolas, monospace;
+  font-size: 22px;
+  line-height: 1;
+  letter-spacing: 0.03em;
+}
+.pw-driver-tag {
+  font-family: Consolas, monospace;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--pit-muted);
+  border: 1px solid var(--pit-line);
+  border-radius: 2px;
+  padding: 2px 5px;
+}
+.pw-driver-name {
+  margin-top: 5px;
+  font-size: 15px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.pw-driver-team {
+  margin-top: 2px;
+  font-family: Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.25;
+  color: var(--pit-muted);
+  overflow-wrap: anywhere;
+}
+.pw-driver-photo-missing {
+  width: 96px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  border: 1px solid var(--pit-line);
+  border-radius: 3px;
+  background: var(--pit-panel-2);
+  color: var(--pit-muted);
+  font-family: Consolas, monospace;
+  font-size: 22px;
+}
+@media (max-width: 640px) {
+  .st-key-driver-card-a,
+  .st-key-driver-card-b {
+    padding: 8px;
+  }
+  .st-key-driver-card-a img,
+  .st-key-driver-card-b img {
+    width: 80px !important;
+    height: 100px !important;
+  }
+  .pw-driver-photo-missing {
+    width: 80px;
+    height: 100px;
+  }
+  .pw-driver-code {
+    font-size: 20px;
+  }
+}
+
 /* Section labels */
 .pw-section {
   margin: 22px 0 6px 0;

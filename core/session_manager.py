@@ -1,5 +1,7 @@
 import os
+import re
 import threading
+import unicodedata
 
 import fastf1
 import fastf1.plotting
@@ -7,12 +9,25 @@ import pandas as pd
 
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CACHE_DIR = os.path.join(_REPO_ROOT, ".fastf1_cache")
+DRIVER_IMAGES_DIR = os.path.join(_REPO_ROOT, "drivers images")
 
 SESSION_CODES = ["Q", "R", "FP1", "FP2", "FP3"]
 
 _SCHEDULE_TIMEOUT_S = 25.0
 
 _FALLBACK_COLORS = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"]
+
+_DRIVER_IMAGE_ALIASES = {
+    "LEWIS HAMILTON": "LEWIS HAMLITON",
+    "VALTTERI BOTTAS": "VALTARI BOTTAS",
+    "DANIIL KVYAT": "DANIIL KYVAT",
+    "JACK AITKEN": "JACK AITKIN",
+    "LOGAN SARGEANT": "LOGAN SERGEANT",
+    "GUANYU ZHOU": "ZHOU GUANYU",
+    "ANDREA KIMI ANTONELLI": "KIMI ANTONELLI",
+    "ALEX ALBON": "ALEXANDER ALBON",
+    "CARLOS SAINZ JR": "CARLOS SAINZ",
+}
 
 _cache_enabled = False
 
@@ -80,14 +95,36 @@ def load_session(year: int, event: str, code: str):
     return session
 
 
+def _driver_value(row, column: str, fallback):
+    if row is None:
+        return fallback
+    value = row.get(column, fallback)
+    if pd.isna(value):
+        return fallback
+    return value
+
+
 def driver_candidates(session) -> pd.DataFrame:
     laps = session.laps
+    results = getattr(session, "results", None)
+    by_code = pd.DataFrame()
+    if (
+        isinstance(results, pd.DataFrame)
+        and not results.empty
+        and "Abbreviation" in results.columns
+    ):
+        by_code = results.drop_duplicates("Abbreviation").set_index("Abbreviation")
     rows = []
     for code, group in laps.groupby("Driver"):
         first = group.iloc[0]
-        rows.append(
-            {"code": code, "name": first.get("FullName", code), "team": first.get("TeamName", "")}
-        )
+        meta = by_code.loc[code] if code in by_code.index else None
+        name = _driver_value(meta, "FullName", None)
+        if name is None:
+            name = _driver_value(first, "FullName", code)
+        team = _driver_value(meta, "TeamName", None)
+        if team is None:
+            team = _driver_value(first, "TeamName", _driver_value(first, "Team", ""))
+        rows.append({"code": code, "name": name, "team": team})
     candidates = pd.DataFrame(rows).set_index("code").sort_index()
     colors = []
     for i, code in enumerate(candidates.index):
@@ -97,6 +134,31 @@ def driver_candidates(session) -> pd.DataFrame:
             colors.append(_FALLBACK_COLORS[i % len(_FALLBACK_COLORS)])
     candidates["color"] = colors
     return candidates[["name", "team", "color"]]
+
+
+def _image_key(text: str) -> str:
+    ascii_text = (
+        unicodedata.normalize("NFKD", str(text))
+        .encode("ascii", "ignore")
+        .decode("ascii")
+    )
+    return " ".join(re.sub(r"[^A-Za-z0-9]+", " ", ascii_text).upper().split())
+
+
+def driver_image_path(year: int, full_name: str) -> str | None:
+    folder = os.path.join(DRIVER_IMAGES_DIR, str(year))
+    if not os.path.isdir(folder):
+        return None
+    index = {}
+    for filename in os.listdir(folder):
+        stem, extension = os.path.splitext(filename)
+        if extension.lower() == ".png":
+            index[_image_key(stem)] = os.path.join(folder, filename)
+    key = _image_key(full_name)
+    if key in index:
+        return index[key]
+    alias = _DRIVER_IMAGE_ALIASES.get(key)
+    return index.get(alias) if alias else None
 
 
 def get_circuit_info(session):

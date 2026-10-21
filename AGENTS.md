@@ -33,6 +33,7 @@ components/               # Plotly figure builders: take core outputs, return go
   track_map.py            # circuit outline + advantage map
   tables.py               # corner breakdown & stint stats
 app.py                    # Streamlit wiring only (widgets, layout, st.* calls, CSS)
+drivers images/<year>/<DRIVER FULL NAME>.png  # portraits; resolved by core.session_manager.driver_image_path
 ```
 
 - Data flow: `app.py` → `core.session_manager` → `core.telemetry_resampler` (both drivers) → `core.corner_analyzer` / `core.tire_model` → `components.*` → figures rendered in `app.py`.
@@ -59,6 +60,7 @@ venv\Scripts\streamlit run app.py
 - Call `fastf1.Cache.enable_cache(...)` (pointing at `.fastf1_cache`) before any `session.load()`.
 - **Never hardcode a GP-name map** (the old code shipped one and it was brittle/stale). Build dropdowns from `fastf1.get_event_schedule(year)` and resolve with `fastf1.get_session(year, event, code)`.
 - Session codes: `'Q'`, `'R'`, `'FP1'`…`'FP3'`.
+- In fastf1 3.9.0a0, `Session.laps` has `Team` but not `FullName`/`TeamName`; use `Session.results` (keyed by `Abbreviation`) for driver names and teams.
 - Apex markers: `session.get_circuit_info().corners` — X/Y are in the telemetry coordinate frame, so the map outline and markers align directly; `circuit_info.rotation` is only for cosmetic map orientation.
 - Pin dependencies with `==` in `requirements.txt` — fastf1's API changes between minor versions (e.g. plotting/color helpers changed in 3.4+).
 

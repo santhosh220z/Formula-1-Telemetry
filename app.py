@@ -1,4 +1,5 @@
 import datetime
+import html
 
 import pandas as pd
 import streamlit as st
@@ -100,6 +101,39 @@ def _format_lap(seconds: float) -> str:
     return f"{minutes}:{seconds % 60:04.1f}"
 
 
+def _driver_card(year: int, code: str, row: pd.Series, tag: str) -> None:
+    name = row["name"] if pd.notna(row["name"]) and str(row["name"]).strip() else code
+    team = row["team"] if pd.notna(row["team"]) else ""
+    color = row.get("color", "#8B9097")
+    if pd.isna(color):
+        color = "#8B9097"
+    image = session_manager.driver_image_path(year, str(name))
+
+    with st.container(key=f"driver-card-{tag.lower()}"):
+        photo_col, info_col = st.columns([1, 2], gap="small", vertical_alignment="center")
+        with photo_col:
+            if image:
+                st.image(image, width=96, alt=f"Portrait of {name}")
+            else:
+                st.markdown(
+                    f'<div class="pw-driver-photo-missing">{html.escape(code)}</div>',
+                    unsafe_allow_html=True,
+                )
+        with info_col:
+            st.markdown(
+                f'<div class="pw-driver-info">'
+                f'<div class="pw-driver-top">'
+                f'<span class="pw-driver-dot" style="background:{html.escape(str(color))};"></span>'
+                f'<span class="pw-driver-code">{html.escape(code)}</span>'
+                f'<span class="pw-driver-tag">{tag}</span>'
+                f'</div>'
+                f'<div class="pw-driver-name">{html.escape(str(name))}</div>'
+                f'<div class="pw-driver-team">{html.escape(str(team))}</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
+
 _AUTH_HINT_TOKENS = (
     "datanotloadederror",
     "sessionnotavailableerror",
@@ -169,6 +203,11 @@ def _main_view(triple: dict):
     if driver_a == driver_b:
         st.warning("Driver A and B are the same; pick two different drivers to compare.")
         return
+
+    with col_a:
+        _driver_card(year, driver_a, candidates.loc[driver_a], "A")
+    with col_b:
+        _driver_card(year, driver_b, candidates.loc[driver_b], "B")
 
     try:
         laps_a = _lap_list(year, event, code, driver_a)
